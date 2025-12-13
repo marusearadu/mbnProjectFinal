@@ -1,0 +1,10 @@
+pgmpy
+scikit-learn
+networkx
+pandas
+numpy
+matplotlib
+seaborn
+scipy
+ipykernel
+torchdiffeq
