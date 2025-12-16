@@ -1,5 +1,8 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+import numpy as np
+import random
+import networkx as nx
 
 POS = {
     "CBF1":  (-1, 1.5),
@@ -41,7 +44,8 @@ def highlight_edges(graph, reference):
     FP = len(list(edge for edge in edge_colors if edge_colors[edge] == 'blue'))
     PR = TP / max(1, TP + FP)
     RE = TP / max(1, TP + FN)
-    print(f"True Positives: \t{TP} \nFalse Negatives: \t{FN} \nFalse Positives: \t{FP} \nPrecision: \t\t{PR:.2f} \nRecall: \t\t{RE:.2f}")
+    F1 = 2*TP/(2*TP + FP + FN)
+    print(f"True Positives: \t{TP} \nFalse Negatives: \t{FN} \nFalse Positives: \t{FP} \nPrecision: \t\t{PR:.2f} \nRecall: \t\t{RE:.2f} \nF1: \t\t{F1:.2f}")
     
     # Draw nodes
     fig, ax = plt.subplots(figsize=(12, 9))
@@ -69,3 +73,47 @@ def highlight_edges(graph, reference):
     plt.legend(handles=legend_elements, loc='best')
 
     plt.show()
+
+def plot_predicted_vs_actual(model, data, factors, title=''):
+    # Plot predicted vs actual for each variable
+    fig, ax = plt.subplots(3, 2, figsize=(15, 10))
+    ax_flat = ax.ravel()
+    total_mse = 0
+    for idx, var in enumerate(factors.columns):
+        variables, mu, cov = model.predict(factors.drop(columns=[var]))
+        x = data['time']
+        # Calculate MSE
+        mse = np.mean((factors[var] - mu.ravel())**2)
+        total_mse += mse
+        print(f'MSE for {var}: {mse}')
+        max_val = factors[var].max()
+        max_val = max_val + 0.7 * abs(max_val)
+        min_val = factors[var].min()
+        min_val = min_val - 0.7 * abs(max_val)
+        ax_flat[idx].plot(x, factors[var], label='Actual')
+        ax_flat[idx].plot(x, mu.ravel(), label='Predicted')
+        # Plot 95% confidence interval
+        std = np.sqrt(cov).ravel()
+        ax_flat[idx].fill_between(x, (mu.ravel() - 1.96 * std), (mu.ravel() + 1.96 * std), color='gray', alpha=0.5, label='95% CI')
+        ax_flat[idx].set_ylim([min_val, max_val])
+        ax_flat[idx].set_title(f'Predicted vs Actual for {var} {title}')
+        ax_flat[idx].set_xlabel('Time')
+        ax_flat[idx].set_ylabel(var)
+        ax_flat[idx].grid()
+        ax_flat[idx].legend()
+    plt.tight_layout()
+    plt.show()
+    print(f'Total MSE: {total_mse}')
+
+def deloop(net):
+    flag = True
+    while flag:
+        try:
+            edges = nx.find_cycle(net)
+            # Remove a random edge from the cycle
+            edge_to_remove = random.choice(edges)
+            net.remove_edge(*edge_to_remove)
+        except nx.exception.NetworkXNoCycle:
+            flag = False
+            pass
+    return net
